@@ -154,7 +154,15 @@ def main():
     config = py2cfg(args.config_path)
     model = Supervision_Train.load_from_checkpoint(os.path.join(config.weights_path, config.test_weights_name+'.ckpt'), config=config)
 
-    model.cuda(config.gpus[0])
+# 更改使用的gpu
+    # 处理 config.gpus，确保它返回 GPU 索引
+    if isinstance(config.gpus, str) and config.gpus == "auto":
+        gpu_index = 0  # 默认选择第 0 块 GPU
+    else:
+        gpu_index = config.gpus[0]  # 确保 config.gpus 是列表，取第一个索引
+
+    # model.cuda(config.gpus[0])
+    model.cuda(gpu_index)
     model.eval()
 
     if args.tta == "lr":
@@ -200,7 +208,9 @@ def main():
                                         drop_last=False, shuffle=False)
                 for input in tqdm(dataloader):
                     # raw_prediction NxCxHxW
-                    raw_predictions = model(input['img'].cuda(config.gpus[0]))
+                    # 更改使用的gpu
+                    # raw_predictions = model(input['img'].cuda(config.gpus[0]))
+                    raw_predictions = model(input['img'].cuda(gpu_index))
                     # print('raw_pred shape:', raw_predictions.shape)
                     raw_predictions = nn.Softmax(dim=1)(raw_predictions)
                     # input_images['features'] NxCxHxW C=3
